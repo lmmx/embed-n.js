@@ -74,6 +74,7 @@ function incrementPages() {
     var pdf_embed = pdf_embeds[i];
     incrementPage(pdf_embed, i, embed_count);
   }
+  refocus();
 }
 
 function decrementPages() {
@@ -89,6 +90,8 @@ var pdf_embeds = document.querySelectorAll('embed');
     incrementPage(pdf_embed, i, embed_count);
   }
 */
+
+ // refocus();
 }
 
 function initialisePdfViewer() {
@@ -98,9 +101,14 @@ function initialisePdfViewer() {
   //   incrementPages (to the right arrow key press/space/vim-right-key)
   //   TODO: a decrementPages function (to the left arrow key press/vim-left-key)
   // ... but this would need to check that the first page's page number would not go below 1
+  
+  refocus();
 }
 
-
+// Function to return focus to a DOM element, so that key presses register
+function refocus() {
+  document.querySelector('embed').focus();
+}
 
 // Tying functions to page: outline of method below:
 
