@@ -1,4 +1,7 @@
 function duplicatePdfPanes(n_panes, start_page) {
+  
+  // HANDLE FUNCTION PARAMETERS
+  
   if (isNaN(parseInt(n_panes))) {
     // default to making 2 panes
     var n_panes = 2;
@@ -17,12 +20,15 @@ function duplicatePdfPanes(n_panes, start_page) {
   // First rule of PDF <embed> duplication club is we don't duplicate PDF <embed> recursively
   if (document.querySelectorAll('embed').length !== 1) {
     throw("I can't let you do that Dave...\n\n\
-    Refresh the page to specify new panes, or use incrementPages() with the existing ones")
+    Refresh the page to specify new panes, or use incrementPages() with the existing ones");
   }
   
   var original_pane = document.querySelector('embed');
-  var pane_width = String(parseInt(100/n_panes * 1000, 10)/1000) + "%";
-  original_pane.setAttribute('width', pane_width);
+  var pane_width = parseFloat(parseInt(100/n_panes * 1000, 10)/1000);
+  var pane_width_str = String(pane_width) + "%";
+  original_pane.setAttribute('width', pane_width_str);
+  var pane_width_counter = parseFloat(0); // this will keep track of the width of any panes already on the page
+  original_pane.style.position = 'absolute';
   original_pane.setAttribute('src', original_pane.getAttribute('src') + '#page=' + String(start_page));
   original_pane.remove();
   for (var j=0; j < n_panes; j++) {
@@ -32,9 +38,15 @@ function duplicatePdfPanes(n_panes, start_page) {
     var dup_pane_preURL = dup_pane_match[1];
     // Increment the page number by the position of current pane in the pane list
     var dup_pagenum = String(parseInt(dup_pane_match[2], 10) + j);
-    duplicate_pane.setAttribute('src',
-                                 dup_pane_preURL + dup_pagenum);
+    
+    // Fix tiny float undersizing
+    if (n_panes == 3 && j == 2) pane_width_counter += 0.001;
+    
+    duplicate_pane.setAttribute('src', dup_pane_preURL + dup_pagenum);
+    duplicate_pane.style.left = String(pane_width_counter) + '%';
     document.body.appendChild(duplicate_pane);
+    
+    pane_width_counter += pane_width; // increment by 1 width
   }
 }
 
@@ -47,7 +59,8 @@ function duplicatePdfPanes(n_panes, start_page) {
 // It is called upon generating the pdf <embed> panes
 
 function incrementPage(pdf_embed, embed_num, pdf_headcount) {
-  src = pdf_embed.getAttribute('src');
+  var next_pdf = pdf_embed.cloneNode();
+  src = next_pdf.getAttribute('src');
   pagematch = src.match('(.+\.pdf)#page=([0-9]+)$');
   if (pagematch === null) {
     // Huh ? The <embed> src attribute isn't a URL ending in ".pdf" ?
@@ -55,15 +68,15 @@ function incrementPage(pdf_embed, embed_num, pdf_headcount) {
   }
   var pdf_root = pagematch[1];
   var modnum = parseInt(pagematch[2], 10) + parseInt(pdf_headcount, 10); // Increment by total number of PDFs
-  pdf_embed.setAttribute('src',
+  next_pdf.setAttribute('src',
                           pdf_root + '#page=' + modnum);
 
   // If Chrome followed the HTML5 spec this wouldn't be necessary!
   // But it doesn't, so remove the <embed> element and reinsert in order to reload to new src
   embed_body = document.body;
-  pdf_embed.remove();
-  embed_body.appendChild(pdf_embed);
-  // The PDF should be in cache, so reload time should be(?) negligible...
+  embed_body.insertBefore(next_pdf, pdf_embed);
+  // To show the new pages, fade out the masking PDF embed and delete it on a timer,
+  // optionally also tying this fade/deletion to an 'onload' event... if possible?
 }
 
 function incrementPages() {
@@ -119,6 +132,7 @@ function checkKey(e) {
     // left arrow response (decrementPages)
   } else if (e.keyCode == '39') {
     incrementPages()
+    return false;
   }
 }
 
